@@ -48,9 +48,9 @@ if generate_btn:
             try:
                 genai.configure(api_key=api_key)
                 
-                # 모델명 변경: 사용 가능한 모델 목록 중 선택 (gemini-2.0-flash)
+                # 모델명 변경: 쿼터 제한 회피를 위해 'gemini-flash-latest' 사용
                 model = genai.GenerativeModel(
-                    'gemini-2.0-flash', 
+                    'gemini-flash-latest', 
                     generation_config={"response_mime_type": "application/json"}
                 )
 
