@@ -29,13 +29,25 @@ try:
 except:
     api_key = st.text_input("API 키 입력", type="password")
 
-# 3. 입력
+# 3. 작업 정보 입력
+st.markdown("### 1. 작업 개요")
 col1, col2 = st.columns(2)
 with col1:
-    task_name = st.text_input("작업명", placeholder="예: 지하 피트층 배관 용접 작업")
-    location = st.text_input("작업 장소", placeholder="예: 밀폐된 지하 공간")
+    task_name = st.text_input("작업명", placeholder="예: 배관 용접 작업")
+    worker_count = st.number_input("투입 인원 (명)", min_value=1, value=2, step=1)
 with col2:
-    tools = st.text_input("사용 장비/도구", placeholder="예: TIG 용접기, 그라인더, 환기팬")
+    materials = st.text_input("사용 자재", placeholder="예: 배관 파이프, 용접봉")
+    tools = st.text_input("사용 장비/도구", placeholder="예: TIG 용접기, 그라인더, 연장선")
+
+st.markdown("### 2. 장소 및 환경")
+col3, col4 = st.columns(2)
+with col3:
+    location_main = st.text_input("주요 장소 (시설/건물)", placeholder="예: 지하 2층 기계실")
+with col4:
+    location_detail = st.text_input("세부 위치", placeholder="예: 공조기 배관 하부")
+
+location_env = st.text_input("주변 환경 특이사항", placeholder="예: 조명이 어둡고 환기가 불충분함, 바닥 물기 있음")
+protectors = st.text_input("착용 보호구", placeholder="예: 안전모, 안전화, 보안면, 가죽장갑, 방진마스크, 각반")
 
 generate_btn = st.button("🚀 위험성평가표 자동 생성하기")
 
@@ -55,16 +67,27 @@ if generate_btn:
                 )
 
                 prompt = f"""
-                건설 안전 기술사로서 '{task_name}'(장소:{location}, 장비:{tools})에 대한 위험성평가표를 작성하세요.
+                건설 안전 기술사로서 아래 작업에 대한 위험성평가표(JSA)를 작성하세요.
                 
-                [규칙]
-                1. '작업준비'->'본작업'->'정리정돈' 단계별 위험요인과 대책 작성.
-                2. 빈도(1~5)와 강도(1~4) 평가 (곱 8 이하).
-                3. 반드시 JSON 리스트로 출력.
+                [작업 정보]
+                - 작업명: {task_name} (투입인원: {worker_count}명)
+                - 사용 자재: {materials}
+                - 사용 장비: {tools}
+                - 작업 장소: {location_main} ({location_detail})
+                - 환경 특성: {location_env}
+                - 보호구: {protectors}
+                
+                [작업 규칙]
+                1. '작업준비' -> '본작업' -> '작업종료/정리' 3단계로 구분하여 작성하세요.
+                2. '작업준비' 단계의 맨 첫 번째 행은 반드시 '작업자 개인 보호구 및 복장 상태 확인'에 대한 내용이어야 합니다.
+                3. 각 위험요인별 '대책'은 실질적인 내용으로 반드시 2개~5개 사이로 다르게 작성하세요. (줄바꿈 '-' 기호 사용)
+                4. 위험성 평가는 빈도(1~5)와 강도(1~4)로 평가하고 위험성(빈도x강도)을 계산하세요. (최대 20점)
+                5. 반드시 JSON 포맷으로만 출력하세요.
                 
                 [JSON 예시]
                 [
-                    {{"단계": "본작업", "위험요인": "...", "대책": "...", "빈도": 2, "강도": 3}}
+                    {{"단계": "작업준비", "위험요인": "작업자 복장 불량으로 인한 끼임 사고 위험", "대책": "- 안전모, 안전화, 각반 착용 상태 확인\n- 작업복 소매 및 옷단 정리 정돈\n- 보안경 착용 확인", "빈도": 2, "강도": 3}},
+                    {{"단계": "본작업", "위험요인": "...", "대책": "- 대책1 ...\n- 대책2 ...", "빈도": 2, "강도": 3}}
                 ]
                 """
                 
