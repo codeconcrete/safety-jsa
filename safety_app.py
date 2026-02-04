@@ -81,7 +81,7 @@ if generate_btn:
                 1. '작업준비' -> '본작업' -> '작업종료/정리' 3단계로 구분하여 작성하세요.
                 2. '작업준비' 단계의 맨 첫 번째 행은 반드시 '작업자 개인 보호구 및 복장 상태 확인'에 대한 내용이어야 합니다.
                 3. 각 위험요인별 '대책'은 실질적인 내용으로 반드시 2개~5개 사이로 다르게 작성하세요. (줄바꿈 '-' 기호 사용)
-                4. 위험성 평가는 빈도(1~5)와 강도(1~4)로 평가하고 위험성(빈도x강도)을 계산하세요. (최대 20점)
+                4. [중요] 위험성은 빈도(1~5)와 강도(1~4)의 곱으로 계산하되, 계산된 '위험성' 수치가 절대 8을 초과하지 않도록 빈도와 강도를 조절하세요. (위험성 <= 8)
                 5. 반드시 JSON 포맷으로만 출력하세요.
                 
                 [JSON 예시]
@@ -112,4 +112,18 @@ if generate_btn:
 
 if 'result_df' in st.session_state:
     st.divider()
-    st.data_editor(st.session_state.result_df, use_container_width=True)
+    st.dataframe(
+        st.session_state.result_df, 
+        use_container_width=True,
+        column_config={
+            "대책": st.column_config.TextColumn(
+                "대책",
+                width="large",
+                help="위험 요인에 대한 구체적인 대책입니다.",
+            ),
+            "위험요인": st.column_config.TextColumn(
+                "위험요인",
+                width="medium",
+            )
+        }
+    )
