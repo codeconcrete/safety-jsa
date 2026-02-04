@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 import json
+import re # JSON 추출을 위한 도구 추가
 
 # 1. 화면 디자인
 st.set_page_config(page_title="스마트 위험성평가", page_icon="🛡️", layout="wide")
@@ -19,9 +20,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🛡️ AI 건설 위험성평가 생성기")
-
-# [중요] 버전 확인용 (성공하면 0.8.3 이상이 찍혀야 함)
-st.caption(f"시스템 버전: {genai.__version__} (Gemini 1.5 Flash 엔진)")
+# 버전 확인용
+st.caption(f"시스템: {genai.__version__} / 엔진: Gemini Pro (Safe Mode)")
 
 # 2. API 키 가져오기
 try:
@@ -44,38 +44,46 @@ if generate_btn:
     if not api_key:
         st.error("설정(Secrets)에 API 키가 없습니다.")
     else:
-        with st.spinner("분석 중... 🧠"):
+        with st.spinner("분석 중... (Gemini Pro) 🧠"):
             try:
                 genai.configure(api_key=api_key)
                 
-                # 모델명: 'models/' 빼고 깔끔하게
-                model = genai.GenerativeModel(
-                    'gemini-1.5-flash', 
-                    generation_config={"response_mime_type": "application/json"}
-                )
+                # [핵심 변경] 1.5 Flash -> gemini-pro (가장 안정적인 모델)
+                # JSON 강제 모드 삭제 (Pro 모델은 지원 안 함)
+                model = genai.GenerativeModel('gemini-pro')
 
                 prompt = f"""
                 건설 안전 기술사로서 '{task_name}'(장소:{location}, 장비:{tools})에 대한 위험성평가표를 작성하세요.
                 
                 [규칙]
                 1. '작업준비'->'본작업'->'정리정돈' 단계별 위험요인과 대책 작성.
-                2. 빈도(1~5)와 강도(1~4) 평가 (곱 8 이하).
-                3. 반드시 JSON 리스트로 출력.
+                2. 빈도(1~5)와 강도(1~4) 평가.
+                3. 반드시 아래 JSON 형식으로만 출력하세요. (코드블록 없이 순수 JSON만)
                 
-                [JSON 예시]
                 [
                     {{"단계": "본작업", "위험요인": "...", "대책": "...", "빈도": 2, "강도": 3}}
                 ]
                 """
                 
                 response = model.generate_content(prompt)
-                data = json.loads(response.text)
-                df = pd.DataFrame(data)
-                df["위험성"] = df["빈도"] * df["강도"]
-                df["등급"] = df["위험성"].apply(lambda x: "🔴 상" if x>=6 else ("🟡 중" if x>=3 else "🟢 하"))
                 
-                st.session_state.result_df = df
-                st.success("생성 완료!")
+                # [추가] JSON 파싱 강화 (Pro 모델은 잡담을 섞을 수 있어서 정제 필요)
+                text = response.text
+                # JSON 부분만 쏙 뽑아내는 정규식
+                match = re.search(r'\[.*\]', text, re.DOTALL)
+                
+                if match:
+                    json_str = match.group(0)
+                    data = json.loads(json_str)
+                    df = pd.DataFrame(data)
+                    df["위험성"] = df["빈도"] * df["강도"]
+                    df["등급"] = df["위험성"].apply(lambda x: "🔴 상" if x>=6 else ("🟡 중" if x>=3 else "🟢 하"))
+                    
+                    st.session_state.result_df = df
+                    st.success("생성 완료!")
+                else:
+                    st.error("AI가 JSON 형식을 잘못 만들었습니다. 다시 시도해주세요.")
+                    st.write(text) # 디버깅용
 
             except Exception as e:
                 st.error(f"에러 상세: {e}")
