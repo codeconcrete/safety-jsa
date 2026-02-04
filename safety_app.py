@@ -23,14 +23,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🛡️ AI 건설 위험성평가 생성기 (Ver 2.0)")
-st.caption("작업 내용만 입력하면 AI(Gemini 2.0)가 위험요인과 안전대책을 자동으로 작성해줍니다.")
+st.title("🛡️ AI 건설 위험성평가 생성기")
+st.caption("작업 내용만 입력하면 AI(Gemini 1.5)가 위험요인과 안전대책을 자동으로 작성해줍니다.")
 
-# 2. API 키 가져오기 (Streamlit Secrets에서 가져옴)
+# 2. API 키 가져오기
 try:
     api_key = st.secrets["GEMINI_API_KEY"]
 except:
-    # 로컬 테스트용 (배포 후엔 안 보임)
     api_key = st.text_input("API 키 입력 (테스트용)", type="password")
 
 # 3. 입력 받는 곳
@@ -52,16 +51,15 @@ if generate_btn:
     else:
         with st.spinner("AI 안전팀장이 분석 중입니다... 🧠"):
             try:
-                # 모델 설정 (Gemini 2.0 Flash)
+                # 모델 설정 (Gemini 1.5 Flash로 복귀)
                 genai.configure(api_key=api_key)
                 
-                # [중요] 대표님이 확인하신 그 모델명 그대로 적용!
+                # [수정] 이제 라이브러리가 최신이라 1.5도 잘 알아듣습니다!
                 model = genai.GenerativeModel(
-                    'models/gemini-2.0-flash', 
+                    'gemini-1.5-flash', 
                     generation_config={"response_mime_type": "application/json"}
                 )
 
-                # 프롬프트 (작업 지시서)
                 prompt = f"""
                 당신은 건설 안전 기술사입니다. 아래 작업에 대한 위험성평가표를 작성하세요.
                 
@@ -86,35 +84,24 @@ if generate_btn:
                 ]
                 """
                 
-                # AI 호출
                 response = model.generate_content(prompt)
-                
-                # 데이터 가공
                 data = json.loads(response.text)
                 df = pd.DataFrame(data)
                 
-                # 위험성 계산 및 등급 판정
                 df["위험성"] = df["빈도"] * df["강도"]
                 df["등급"] = df["위험성"].apply(lambda x: "🔴 상" if x>=6 else ("🟡 중" if x>=3 else "🟢 하"))
                 
                 st.session_state.result_df = df
-                st.success("생성 완료! (Gemini 2.0)")
+                st.success("생성 완료! (Gemini 1.5 Flash)")
 
             except Exception as e:
+                # 에러 메시지를 좀 더 자세히 보여주도록 수정
                 st.error(f"에러 발생: {e}")
 
-# 5. 결과 보여주기 및 수정/다운로드
+# 5. 결과 보여주기 및 수정
 if 'result_df' in st.session_state:
     st.divider()
     st.subheader("📝 결과 확인 및 수정")
-    
-    # 수정 가능한 표
-    edited_df = st.data_editor(
-        st.session_state.result_df,
-        use_container_width=True,
-        num_rows="dynamic"
-    )
-    
-    # 엑셀(CSV) 다운로드
+    edited_df = st.data_editor(st.session_state.result_df, use_container_width=True, num_rows="dynamic")
     csv = edited_df.to_csv(index=False).encode('utf-8-sig')
     st.download_button("💾 엑셀(CSV)로 다운로드", csv, "risk_assessment.csv")
