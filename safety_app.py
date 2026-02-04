@@ -48,9 +48,9 @@ if generate_btn:
             try:
                 genai.configure(api_key=api_key)
                 
-                # 모델명 변경: 최신 버전 별칭 사용
+                # 모델명 변경: 사용 가능한 모델 목록 중 선택 (gemini-2.0-flash)
                 model = genai.GenerativeModel(
-                    'gemini-1.5-flash-latest', 
+                    'gemini-2.0-flash', 
                     generation_config={"response_mime_type": "application/json"}
                 )
 
