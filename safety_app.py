@@ -55,7 +55,7 @@ if generate_btn:
                 # 모델 설정 (Gemini 1.5 Flash + JSON 모드)
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel(
-                    'models/gemini-1.5-flash',
+                    'gemini-1.5-flash',
                     generation_config={"response_mime_type": "application/json"}
                 )
 
@@ -115,4 +115,5 @@ if 'result_df' in st.session_state:
     
     # 엑셀(CSV) 다운로드
     csv = edited_df.to_csv(index=False).encode('utf-8-sig')
+
     st.download_button("💾 엑셀(CSV)로 다운로드", csv, "risk_assessment.csv")
