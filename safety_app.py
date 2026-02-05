@@ -112,26 +112,19 @@ if generate_btn:
 
 if 'result_df' in st.session_state:
     st.divider()
-    # HTML로 변환하여 출력 (줄바꿈 강제 적용)
+    # 정적 테이블로 출력 (줄바꿈 지원을 위해 st.table 사용)
     st.markdown("### 📋 위험성평가 결과표")
     
-    # \n을 <br>로 변환
-    display_df = st.session_state.result_df.copy()
-    display_df['대책'] = display_df['대책'].str.replace('\n', '<br>')
+    # 스타일 적용: 줄바꿈(pre-wrap) 및 상단 정렬
+    styled_df = st.session_state.result_df.style.set_properties(**{
+        'white-space': 'pre-wrap',
+        'vertical-align': 'top',
+        'text-align': 'left'
+    })
     
-    # 스타일 적용
-    table_css = """
-    <style>
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th { background-color: #262730; color: white; padding: 12px; text-align: left; border-bottom: 2px solid #edaf12; }
-        td { padding: 10px; border-bottom: 1px solid #444; vertical-align: top; color: #ddd; }
-        .col-risk { font-weight: bold; color: #ff6c6c; }
-        .col-measure { white-space: pre-wrap; line-height: 1.6; }
-    </style>
-    """
-    
-    # Pandas HTML 변환 (escape=False로 설정하여 <br> 태그 허용)
-    html = display_df.to_html(classes='dataframe', escape=False, index=False)
-    
-    # 최종 렌더링
-    st.markdown(table_css + html, unsafe_allow_html=True)
+    # 컬럼 헤더 스타일
+    styled_df.set_table_styles([
+        dict(selector='th', props=[('text-align', 'left'), ('background-color', '#262730'), ('color', 'white')])
+    ])
+
+    st.table(styled_df)
