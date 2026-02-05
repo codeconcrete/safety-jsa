@@ -112,18 +112,26 @@ if generate_btn:
 
 if 'result_df' in st.session_state:
     st.divider()
-    st.dataframe(
-        st.session_state.result_df, 
-        use_container_width=True,
-        column_config={
-            "대책": st.column_config.TextColumn(
-                "대책",
-                width="large",
-                help="위험 요인에 대한 구체적인 대책입니다.",
-            ),
-            "위험요인": st.column_config.TextColumn(
-                "위험요인",
-                width="medium",
-            )
-        }
-    )
+    # HTML로 변환하여 출력 (줄바꿈 강제 적용)
+    st.markdown("### 📋 위험성평가 결과표")
+    
+    # \n을 <br>로 변환
+    display_df = st.session_state.result_df.copy()
+    display_df['대책'] = display_df['대책'].str.replace('\n', '<br>')
+    
+    # 스타일 적용
+    table_css = """
+    <style>
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background-color: #262730; color: white; padding: 12px; text-align: left; border-bottom: 2px solid #edaf12; }
+        td { padding: 10px; border-bottom: 1px solid #444; vertical-align: top; color: #ddd; }
+        .col-risk { font-weight: bold; color: #ff6c6c; }
+        .col-measure { white-space: pre-wrap; line-height: 1.6; }
+    </style>
+    """
+    
+    # Pandas HTML 변환 (escape=False로 설정하여 <br> 태그 허용)
+    html = display_df.to_html(classes='dataframe', escape=False, index=False)
+    
+    # 최종 렌더링
+    st.markdown(table_css + html, unsafe_allow_html=True)
