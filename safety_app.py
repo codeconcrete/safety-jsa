@@ -50,7 +50,7 @@ with col2:
 if "draft_generated" not in st.session_state:
     st.session_state.draft_generated = False
 
-analyze_btn = st.button("📋 작업 정보 분석 및 장비 추천받기 (1단계)")
+analyze_btn = st.button("📋 작업 정보 분석 및 장비 추천받기 (1단계)", use_container_width=True)
 
 if analyze_btn:
     if not api_key:
@@ -113,7 +113,7 @@ if st.session_state.draft_generated:
         materials = st.text_input("준비자료/허가서", value=draft.get("docs", ""))
 
     st.markdown("---")
-    generate_final_btn = st.button("🚀 위험성평가표 최종 생성하기 (2단계)")
+    generate_final_btn = st.button("🚀 위험성평가표 최종 생성하기 (2단계)", use_container_width=True)
 
     if generate_final_btn:
         with st.spinner("최종 위험성평가표를 생성하고 있습니다... 🛡️"):
@@ -172,36 +172,73 @@ if st.session_state.draft_generated:
 
 if 'result_df' in st.session_state:
     st.divider()
-    # 정적 테이블로 출력 (줄바꿈 지원을 위해 st.table 사용)
-    st.markdown("### 📋 위험성평가 결과표")
     
-    # 1. 기본 설정: 줄바꿈, 상단 정렬, 배경색
-    # 2. 전체 가운데 정렬 먼저 적용
-    styled_df = st.session_state.result_df.style.set_properties(**{
-        'white-space': 'pre-wrap',
-        'vertical-align': 'middle',
-        'text-align': 'center',
-        'background-color': '#ffffff',
-        'color': '#000000',
-        'border-color': '#dddddd'
-    })
-    
-    # 3. '대책' 컬럼만 좌측 정렬로 덮어쓰기
-    styled_df.set_properties(subset=['대책'], **{
-        'text-align': 'left'
-    })
-    
-    # 4. 헤더 스타일
-    styled_df.set_table_styles([
-        dict(selector='th', props=[
-            ('text-align', 'center'), 
-            ('background-color', '#e6e9ef'), 
-            ('color', '#000000'),
-            ('font-weight', 'bold'),
-            ('border-bottom', '2px solid #555'),
-            ('vertical-align', 'middle')
+    # 보기 모드 선택 (PC 표 / 모바일 카드)
+    view_mode = st.radio("보기 모드 선택", ["📄 표준 보고서형 (PC)", "📱 카드형 리스트 (Mobile)"], horizontal=True)
+
+    if "PC" in view_mode:
+        # 정적 테이블로 출력 (줄바꿈 지원을 위해 st.table 사용)
+        st.markdown("### 📋 위험성평가 결과표")
+        
+        # 1. 기본 설정: 줄바꿈, 상단 정렬, 배경색
+        styled_df = st.session_state.result_df.style.set_properties(**{
+            'white-space': 'pre-wrap',
+            'vertical-align': 'middle',
+            'text-align': 'center',
+            'background-color': '#ffffff',
+            'color': '#000000',
+            'border-color': '#dddddd'
+        })
+        
+        # 3. '대책' 컬럼만 좌측 정렬로 덮어쓰기
+        styled_df.set_properties(subset=['대책'], **{
+            'text-align': 'left'
+        })
+        
+        # 4. 헤더 스타일
+        styled_df.set_table_styles([
+            dict(selector='th', props=[
+                ('text-align', 'center'), 
+                ('background-color', '#e6e9ef'), 
+                ('color', '#000000'),
+                ('font-weight', 'bold'),
+                ('border-bottom', '2px solid #555'),
+                ('vertical-align', 'middle')
+            ])
         ])
-    ])
+        
+        # 5. 인덱스 숨기기 및 출력
+        st.table(styled_df.hide(axis="index"))
     
-    # 5. 인덱스 숨기기 및 출력
-    st.table(styled_df.hide(axis="index"))
+    else:
+        # 모바일 카드 뷰 구현
+        st.markdown("### 📱 위험성평가 카드 리스트")
+        for index, row in st.session_state.result_df.iterrows():
+            # 등급에 따른 색상/아이콘 설정
+            grade = row['등급']
+            border_color = "#ff6c6c" if "상" in grade else ("#f1c40f" if "중" in grade else "#2ecc71")
+            
+            # HTML 카드 디자인
+            card_html = f"""
+            <div style="
+                background-color: white; 
+                padding: 15px; 
+                border-radius: 10px; 
+                border-left: 6px solid {border_color}; 
+                margin-bottom: 15px; 
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                color: black;
+            ">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-weight: bold; color: #555; font-size: 0.9em;">Step {index+1} [{row['단계']}]</span>
+                    <span style="font-weight: bold; color: {border_color}; border: 1px solid {border_color}; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">{grade} ({row['위험성']})</span>
+                </div>
+                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px; color: #333;">
+                    ⚠️ {row['위험요인']}
+                </div>
+                <div style="background-color: #f8f9fa; padding: 10px; border-radius: 6px; font-size: 0.95em; color: #444; line-height: 1.5; white-space: pre-wrap;">
+                    {row['대책']}
+                </div>
+            </div>
+            """
+            st.markdown(card_html, unsafe_allow_html=True)
