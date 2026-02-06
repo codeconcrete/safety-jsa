@@ -4,6 +4,13 @@ import pandas as pd
 import json
 
 # 1. 화면 디자인
+def parse_to_list(text_data):
+    if isinstance(text_data, list):
+        return text_data
+    if not text_data:
+        return []
+    return [item.strip() for item in text_data.split(',') if item.strip()]
+
 st.set_page_config(page_title="스마트 위험성평가", page_icon="🛡️", layout="wide")
 
 st.markdown("""
@@ -11,6 +18,7 @@ st.markdown("""
     .stApp { background-color: #1a1a1a; color: #ffffff; }
     h1, h2, h3, p, div { font-family: 'Noto Sans KR', sans-serif; }
     .stTextInput input { background-color: #333333 !important; color: white !important; }
+    .stTextInput label, .stMultiSelect label, .stTextInput label p, .stMultiSelect label p { color: #ffffff !important; }
     div.stButton > button {
         background-color: #0085ff; color: white; border: none;
         border-radius: 5px; padding: 10px 20px; font-weight: bold; width: 100%;
@@ -37,14 +45,14 @@ with col1:
     # 주요 위험 요인 선택 (체크박스 대신 멀티셀렉트로 깔끔하게 구현)
     risk_factors = st.multiselect(
         "해당되는 위험 작업 특성을 모두 선택하세요 (자동 추천에 반영)",
-        ["고소작업 (추락 위험)", "화기작업 (화재 발생)", "밀폐공간 (질식 위험)", 
+        ["일반작업 (해당 없음)", "고소작업 (추락 위험)", "화기작업 (화재 발생)", "밀폐공간 (질식 위험)", 
          "전기작업 (감전 위험)", "중량물 취급 (근골격계/낙하)", "화학물질 취급", 
          "건설기계 사용", "해체/철거 작업"]
     )
 
 with col2:
     location = st.text_input("작업 위치", placeholder="예: 105동 외부 지상 3층~5층")
-    risk_context_manual = st.text_input("기타 위험 특성 (직접 입력)", placeholder="예: 강풍 예상, 야간 작업 등")
+    risk_context_manual = st.text_input("기타 위험 특성 (직접 입력)", placeholder="예: 강풍 예상, 야간 작업, 인접 장비 동시 작업 등")
 
 # 초안 생성 버튼
 if "draft_generated" not in st.session_state:
@@ -105,12 +113,18 @@ if st.session_state.draft_generated:
     
     col3, col4 = st.columns(2)
     with col3:
-        protectors = st.text_input("보호구", value=draft.get("protectors", ""))
-        tools = st.text_input("사용 공구/장비", value=draft.get("tools", ""))
+        protectors_list = parse_to_list(draft.get("protectors", ""))
+        protectors = st.multiselect("보호구", options=protectors_list, default=protectors_list)
+
+        tools_list = parse_to_list(draft.get("tools", ""))
+        tools = st.multiselect("사용 공구/장비", options=tools_list, default=tools_list)
     
     with col4:
-        safety_equip = st.text_input("안전장비/시설", value=draft.get("safety_equip", ""))
-        materials = st.text_input("준비자료/허가서", value=draft.get("docs", ""))
+        safety_equip_list = parse_to_list(draft.get("safety_equip", ""))
+        safety_equip = st.multiselect("안전장비/시설", options=safety_equip_list, default=safety_equip_list)
+
+        materials_list = parse_to_list(draft.get("docs", ""))
+        materials = st.multiselect("준비자료/허가서", options=materials_list, default=materials_list)
 
     st.markdown("---")
     generate_final_btn = st.button("🚀 위험성평가표 최종 생성하기 (2단계)", use_container_width=True)
@@ -132,13 +146,14 @@ if st.session_state.draft_generated:
                 - 작업명: {task_name}
                 - 작업 위치: {location}
                 - 위험 특성: {', '.join(risk_factors)} / {risk_context_manual}
-                - 보호구: {protectors}
-                - 안전장비: {safety_equip}
-                - 사용장비: {tools}
-                - 준비자료: {materials}
+                - 보호구: {', '.join(protectors)}
+                - 안전장비: {', '.join(safety_equip)}
+                - 사용장비: {', '.join(tools)}
+                - 준비자료: {', '.join(materials)}
                 
                 [작업 규칙]
-                1. '작업준비' -> '본작업' -> '작업종료/정리' 3단계로 구분하여 작성하세요.
+                [작업 규칙]
+                1. '작업준비' -> '본작업' -> '작업종료/정리' 3단계를 기본으로 하되, **'본작업'은 반드시 구체적인 단위 작업명으로 세분화해서 작성하세요.** (예: '본작업: 펌프카 설치', '본작업: 타설 진행')
                 2. '작업준비' 단계의 맨 첫 번째 행은 반드시 '작업자 개인 보호구 및 복장 상태 확인'에 대한 내용이어야 합니다.
                 3. 각 위험요인별 '대책'은 실질적인 내용으로 반드시 2개~5개 사이로 다르게 작성하세요. (줄바꿈은 반드시 '\\n' 문자를 사용하세요. 실제 엔터키 사용 금지)
                 4. [중요] 위험성은 빈도(1~5)와 강도(1~4)의 곱으로 계산하되, 계산된 '위험성' 수치가 절대 8을 초과하지 않도록 빈도와 강도를 조절하세요. (위험성 <= 8)
@@ -147,7 +162,7 @@ if st.session_state.draft_generated:
                 [JSON 예시]
                 [
                     {{"단계": "작업준비", "위험요인": "작업자 복장 불량으로 인한 끼임 사고 위험", "대책": "- 안전모, 안전화, 각반 착용 상태 확인\\n- 작업복 소매 및 옷단 정리 정돈\\n- 보안경 착용 확인", "빈도": 2, "강도": 3}},
-                    {{"단계": "본작업", "위험요인": "...", "대책": "- 대책1 ...\\n- 대책2 ...", "빈도": 2, "강도": 3}}
+                    {{"단계": "본작업: 펌프카 설치", "위험요인": "...", "대책": "- 대책1 ...\\n- 대책2 ...", "빈도": 2, "강도": 3}}
                 ]
                 """
                 
@@ -193,6 +208,15 @@ if 'result_df' in st.session_state:
         # 3. '대책' 컬럼만 좌측 정렬로 덮어쓰기
         styled_df.set_properties(subset=['대책'], **{
             'text-align': 'left'
+        })
+
+        # 4-1. 숫자 컬럼 및 단계 컬럼 스타일링 (가운데 정렬, 줄바꿈 방지 등)
+        styled_df.set_properties(subset=['빈도', '강도', '위험성', '등급'], **{
+             'text-align': 'center'
+        })
+        styled_df.set_properties(subset=['단계'], **{
+             'text-align': 'center',
+             'white-space': 'nowrap' 
         })
         
         # 4. 헤더 스타일
