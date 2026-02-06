@@ -18,6 +18,7 @@ st.markdown("""
     .stApp { background-color: #1a1a1a; color: #ffffff; }
     h1, h2, h3, p, div { font-family: 'Noto Sans KR', sans-serif; }
     .stTextInput input { background-color: #333333 !important; color: white !important; }
+    .stTextInput input::placeholder { color: #aaaaaa !important; opacity: 1; }
     .stTextInput label, .stMultiSelect label, .stTextInput label p, .stMultiSelect label p { color: #ffffff !important; }
     div.stButton > button {
         background-color: #0085ff; color: white; border: none;
@@ -114,17 +115,17 @@ if st.session_state.draft_generated:
     col3, col4 = st.columns(2)
     with col3:
         protectors_list = parse_to_list(draft.get("protectors", ""))
-        protectors = st.multiselect("보호구", options=protectors_list, default=protectors_list)
+        protectors = st.multiselect("보호구", options=protectors_list)
 
         tools_list = parse_to_list(draft.get("tools", ""))
-        tools = st.multiselect("사용 공구/장비", options=tools_list, default=tools_list)
+        tools = st.multiselect("사용 공구/장비", options=tools_list)
     
     with col4:
         safety_equip_list = parse_to_list(draft.get("safety_equip", ""))
-        safety_equip = st.multiselect("안전장비/시설", options=safety_equip_list, default=safety_equip_list)
+        safety_equip = st.multiselect("안전장비/시설", options=safety_equip_list)
 
         materials_list = parse_to_list(draft.get("docs", ""))
-        materials = st.multiselect("준비자료/허가서", options=materials_list, default=materials_list)
+        materials = st.multiselect("준비자료/허가서", options=materials_list)
 
     st.markdown("---")
     generate_final_btn = st.button("🚀 위험성평가표 최종 생성하기 (2단계)", use_container_width=True)
