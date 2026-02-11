@@ -1,0 +1,18 @@
+name: Streamlit Keep Alive
+
+on:
+  schedule:
+    # 한국 시간 기준으로 약 4시간마다 한 번씩 접속 (UTC 기준 0, 4, 8, 12, 16, 20시)
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # 수동으로도 실행 가능하게 설정
+
+jobs:
+  ping_site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Visit Streamlit App
+        run: |
+          curl -I https://safety-jsa-avetmorlnckeymbhwu52lh.streamlit.app/
